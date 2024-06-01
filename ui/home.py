@@ -36,18 +36,23 @@ class GCodeExecWorker(QThread):
         # read file with gcode from the selected path
         with open(self._g_code_path, 'r') as f:
             for line in f:
+
                 # pause and resume logic 
                 self._mutex.lock()
                 if self._is_paused:
                     self._pause_condition.wait(self._mutex)
                 self._mutex.unlock()
 
+                # stop when _is_stoped is true
+                if self._is_stoped:
+                    break
+
                 # decode the input and send log to the ui 
                 line = line.strip()
-                self.signals.worker_log.emit('> ' + line + '/n')
+                self.signals.worker_log.emit('> ' + line)
                 
-                # stop execution when there is an error or when _is_stoped is true
-                if not main.do_line(line) or self._is_stoped:
+                # stop execution when there is an error
+                if not main.do_line(line):
                     break
 
         # emit stoped signal
@@ -272,14 +277,17 @@ class Ui_MainWindow(QMainWindow):
         self.btn_pause.setEnabled(False)
         self.btn_stop.setEnabled(False)
 
+        # Other
+        self.g_code_exec = None # reset worker when it is stoped
+
     def workerPaused(self):
         # Disabled
         self.btn_pause.setEnabled(False)
         self.file_path.setEnabled(False)
         self.btn_path.setEnabled(False)
-        self.btn_stop.setEnabled(False)
 
         # Enabled
+        self.btn_stop.setEnabled(True)
         self.btn_start.setEnabled(True)
 
     def workerResumed(self):
