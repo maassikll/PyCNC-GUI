@@ -13,6 +13,7 @@ import cnc.main_gui as main
 from ui.signals import Signals
 import os
 import webbrowser
+from PyQt6.QtGui import QTextCursor
 
 class GCodeExecWorker(QThread):
 
@@ -279,6 +280,7 @@ class Ui_MainWindow(QMainWindow):
 
         # Other
         self.g_code_exec = None # reset worker when it is stoped
+        self.info_dialog("Travail terminé.")
 
     def workerPaused(self):
         # Disabled
@@ -302,6 +304,7 @@ class Ui_MainWindow(QMainWindow):
 
     def workerLog(self, log : str): # append log to text area
         self.log_textarea.appendPlainText(log)
+        self.scrollToBottom()
 
     def btnZenbreak(self): # open a browser and go to github link
         url = "https://github.com/MRxACR/PyCNC-GUI"
@@ -372,3 +375,9 @@ class Ui_MainWindow(QMainWindow):
             message,
             QMessageBox.StandardButton.Ok
         )
+
+    def scrollToBottom(self):
+        cursor = self.log_textarea.textCursor()
+        cursor.movePosition(QTextCursor.MoveOperation.End)
+        self.log_textarea.setTextCursor(cursor)
+        self.log_textarea.ensureCursorVisible()
