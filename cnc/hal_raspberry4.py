@@ -3,6 +3,7 @@ import RPi.GPIO as GPIO
 import time
 from cnc.pulses import *
 from cnc.config import *
+from time import sleep
 
 # Set up the GPIO pin
 GPIO.setmode(GPIO.BCM)
@@ -10,6 +11,8 @@ GPIO.setmode(GPIO.BCM)
 def init():
     """ Initialize GPIO pins and machine itself.
     """
+    GPIO.cleanup()
+
     GPIO.setup(STEPPER_STEP_PIN_X, GPIO.OUT)
     GPIO.setup(STEPPER_STEP_PIN_Y, GPIO.OUT)
     GPIO.setup(STEPPER_STEP_PIN_Z, GPIO.OUT)
@@ -33,7 +36,6 @@ def init():
     GPIO.output(BED_HEATER_PIN, GPIO.LOW)
     GPIO.output(STEPPERS_ENABLE_PIN, GPIO.LOW)
 
-    watchdog.start()
     
 
 
@@ -104,15 +106,18 @@ def calibrate(x, y, z):
 
 # noinspection PyUnusedLocal
 def move(generator):
-        # Activer les steppers
-    GPIO.output(STEPPERS_ENABLE_PIN, GPIO.LOW)
+    # Activer les steppers
+    GPIO.output(STEPPERS_ENABLE_PIN, GPIO.HIGH)
     
     prev = 0
     st = time.time()
     k = 0
     k0 = 0
 
+
+
     for direction, tx, ty, tz, te in generator:
+
         if direction:  # Configurer les directions
             if tx is not None:
                 GPIO.output(STEPPER_DIR_PIN_X, GPIO.HIGH if tx > 0 else GPIO.LOW)
@@ -124,34 +129,15 @@ def move(generator):
                 GPIO.output(STEPPER_DIR_PIN_E, GPIO.HIGH if te > 0 else GPIO.LOW)
             continue
         
-        pins = []
-        m = None
-        for i, pin in zip((tx, ty, tz, te), (STEP_PIN_MASK_X, STEP_PIN_MASK_Y, STEP_PIN_MASK_Z, STEP_PIN_MASK_E)):
-            if i is not None:
-                pins.append(pin)
-                if m is None or i < m:
-                    m = i
-        
-        k = int(round(m * US_IN_SECONDS))
-        if k - prev > 0:
-            time.sleep((k - prev) * US_IN_SECONDS)
-        
-        for pin in pins:
-            GPIO.output(pin, GPIO.HIGH)
-        
-        time.sleep(STEPPER_PULSE_LENGTH_US * US_IN_SECONDS)
-        
-        for pin in pins:
-            GPIO.output(pin, GPIO.LOW)
-        
-        prev = k + STEPPER_PULSE_LENGTH_US
-    
-    pt = time.time()
-    logging.info("préparé en " + str(round(pt - st, 2)) + "s, estimé en "
-                 + str(round(generator.total_time_s(), 2)) + "s")
+    delay = 0.003
+    for x in range(200):
+        GPIO.output(STEPPER_STEP_PIN_X, GPIO.HIGH)
+        sleep(delay)
+        GPIO.output(STEPPER_STEP_PIN_X, GPIO.LOW)
+        sleep(delay)
     
     # Désactiver les steppers
-    GPIO.output(STEPPERS_ENABLE_PIN, GPIO.HIGH)
+    GPIO.output(STEPPERS_ENABLE_PIN, GPIO.LOW)
 
 
 def join():
