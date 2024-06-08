@@ -44,6 +44,7 @@ def spindle_control(percent):
     :param percent: Spindle speed in percent.
     """
     logging.info("spindle control: {}%".format(percent))
+    print(f"spinning ...\t speed : {percent} %")
 
 
 def fan_control(on_off):
@@ -106,6 +107,9 @@ def calibrate(x, y, z):
 
 # noinspection PyUnusedLocal
 def move(generator):
+    """ Déplace la tête à la position spécifiée
+    :param generator: Objet PulseGenerator.
+    """
     # Activer les steppers
     GPIO.output(STEPPERS_ENABLE_PIN, GPIO.HIGH)
     
@@ -114,10 +118,9 @@ def move(generator):
     k = 0
     k0 = 0
 
-
+    US_IN_SECONDS = 1e-3
 
     for direction, tx, ty, tz, te in generator:
-
         if direction:  # Configurer les directions
             if tx is not None:
                 GPIO.output(STEPPER_DIR_PIN_X, GPIO.HIGH if tx > 0 else GPIO.LOW)
@@ -129,12 +132,32 @@ def move(generator):
                 GPIO.output(STEPPER_DIR_PIN_E, GPIO.HIGH if te > 0 else GPIO.LOW)
             continue
         
-    delay = 0.003
-    for x in range(200):
-        GPIO.output(STEPPER_STEP_PIN_X, GPIO.HIGH)
-        sleep(delay)
-        GPIO.output(STEPPER_STEP_PIN_X, GPIO.LOW)
-        sleep(delay)
+        pins = []
+        m = None
+        for i, pin in zip((tx, ty, tz, te), (STEPPER_STEP_PIN_X, STEPPER_STEP_PIN_Y, STEPPER_STEP_PIN_Z, STEPPER_STEP_PIN_E)):
+            if i is not None:
+                pins.append(pin)
+                if m is None or i < m:
+                    m = i
+        
+        k = int(round(m * US_IN_SECONDS))
+        if k - prev > 0:
+            pass
+            #time.sleep((k - prev) * US_IN_SECONDS)
+        
+        for pin in pins:
+            GPIO.output(pin, GPIO.HIGH)
+        
+        time.sleep(STEPPER_PULSE_LENGTH_US * US_IN_SECONDS / len(pins))
+        
+        for pin in pins:
+            GPIO.output(pin, GPIO.LOW)
+        
+        prev = k + STEPPER_PULSE_LENGTH_US
+    
+    pt = time.time()
+    logging.info("préparé en " + str(round(pt - st, 2)) + "s, estimé en "
+                 + str(round(generator.total_time_s(), 2)) + "s")
     
     # Désactiver les steppers
     GPIO.output(STEPPERS_ENABLE_PIN, GPIO.LOW)

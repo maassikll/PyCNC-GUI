@@ -617,7 +617,12 @@ class PulseGeneratorCircular(PulseGenerator):
         # first and last item can be slightly out of bound due float precision
         if i + 1 == self._iterations_a:
             return direction, self._r_div_v * self._delta_angle
-        b = math.sqrt(self._radius_a2 - a * a)
+        
+        ts = self._radius_a2 - a * a
+        if ts < 0:
+            return direction, self.__circular_find_time(a, a)
+
+        b = math.sqrt(ts)
         if side:
             b = -b
         return direction, self.__circular_find_time(a, b)
@@ -633,7 +638,12 @@ class PulseGeneratorCircular(PulseGenerator):
         # first and last item can be slightly out of bound due float precision
         if i + 1 == self._iterations_b:
             return direction, self._r_div_v * self._delta_angle
-        a = math.sqrt(self._radius_b2 - b * b)
+        
+        ts = self._radius_b2 - b * b
+        if ts < 0:
+            return direction, self.__circular_find_time(b, b)
+        
+        a = math.sqrt(ts)
         if side:
             a = -a
         return direction, self.__circular_find_time(a, b)
