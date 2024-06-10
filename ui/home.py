@@ -280,7 +280,10 @@ class Ui_MainWindow(QMainWindow):
 
         # Other
         self.g_code_exec = None # reset worker when it is stoped
-        self.info_dialog("Travail terminé.")
+        if self.btn_stop.setEnabled(False):
+            self.info_dialog("Travail terminé.")
+        elif self.btn_pause.setEnabled(False):
+            self.info_dialog("Travail mis en pause.")
 
     def workerPaused(self):
         # Disabled
